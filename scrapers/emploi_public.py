@@ -26,7 +26,7 @@ def scrape_emploi_public(ministere: str, specialite: str, grade: str) -> list[Co
             titre = lien.get_text(strip=True)
             href = lien.get("href", "")
             if not href.startswith("http"):
-                href = f"https://www.emploi-public.ma{href}"
+                href = f"https://www.emploi-public.ma/{href.lstrip('/')}"
 
             concours = Concours(
                 titre=titre,

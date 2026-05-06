@@ -25,6 +25,8 @@ def scrape_alwadifa(ministere: str, specialite: str, grade: str) -> list[Concour
 
             titre = titre_el.get_text(strip=True)
             href = lien.get("href", "")
+            if not href.startswith("http"):
+                href = f"https://alwadifa-maroc.com/{href.lstrip('/')}"
 
             concours = Concours(
                 titre=titre,

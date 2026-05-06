@@ -90,8 +90,8 @@ if rechercher:
 
                     with col2:
                         st.markdown(f"**Année:** {concours.annee}")
-                        if concours.url_source:
-                            st.markdown(f"[Lien externe ↗]({concours.url_source})", unsafe_allow_html=True)
+                        if concours.url_source and concours.url_source.startswith("http"):
+                            st.markdown(f"[🔗 Lien externe ↗]({concours.url_source})")
 
                     # Bouton pour charger et afficher le contenu directement
                     pdf_url = concours.url_pdf or (concours.url_source if concours.url_source and concours.url_source.endswith(".pdf") else None)
