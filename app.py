@@ -138,11 +138,20 @@ if rechercher:
                                         mime = get_image_mime_type(img_url)
                                         contenu += lire_image_concours(img_b64, mime) + "\n\n"
 
+                            # Extraction automatique des métadonnées
+                            from ai_solver import extraire_metadonnees_concours
+                            meta = extraire_metadonnees_concours(contenu)
+                            concours.ministere = meta.get("ministere", concours.ministere)
+                            concours.specialite = meta.get("specialite", concours.specialite)
+                            concours.grade = meta.get("grade", concours.grade)
+                            concours.annee = meta.get("annee", concours.annee)
+                            concours.date_concours = meta.get("date_concours", concours.date_concours)
+
                             if not contenu:
                                 contenu = f"Concours: {concours.titre}\nGrade: {concours.grade}\nSpécialité: {concours.specialite}"
 
                             solution = generer_solution(contenu, concours.specialite, concours.grade)
-                            st.markdown("### 💡 Solution générée par IA")
+                            st.markdown(f"### 💡 Solution générée par IA\n\n**Ministère détecté :** {concours.ministere}\n\n**Spécialité détectée :** {concours.specialite}\n\n**Grade détecté :** {concours.grade}\n\n**Année :** {concours.annee}")
                             st.markdown(solution)
 
 # --- Footer ---

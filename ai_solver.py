@@ -1,3 +1,22 @@
+def extraire_metadonnees_concours(contenu: str) -> dict:
+    """Utilise l'IA pour extraire ministère, spécialité, grade depuis le texte d'un sujet."""
+    client = get_client()
+    prompt = (
+        "Voici le texte d'un sujet de concours marocain. "
+        "Identifie et retourne sous forme de JSON les champs suivants si présents : ministere, specialite, grade, annee, date_concours. "
+        "Si un champ n'est pas trouvé, laisse-le vide. Réponds uniquement avec le JSON.\n\nTEXTE:\n" + contenu[:3000]
+    )
+    try:
+        response = client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=500,
+        )
+        import json
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        return {"ministere": "", "specialite": "", "grade": "", "annee": "", "date_concours": "", "error": str(e)}
 """Générateur de solutions par IA (Groq - gratuit)."""
 from groq import Groq
 from config import GROQ_API_KEY, LLM_MODEL

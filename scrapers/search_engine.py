@@ -21,30 +21,37 @@ def search_concours(ministere: str, specialite: str, grade: str) -> list[Concour
     resultats = []
     ua = UserAgent()
 
-    # Construire les termes de recherche
-    terms = " ".join(filter(None, [grade, specialite, ministere]))
+    # Recherche bilingue : français et arabe
+    # Dictionnaires de correspondance pour les ministères, spécialités, grades
+    from config import MINISTERES, SPECIALITES, GRADES
+    ARABIC_EQUIV = {
+        "Ministère de la Santé": "وزارة الصحة",
+        "Ministère de l'Intérieur": "وزارة الداخلية",
+        "Ministère de l'Éducation Nationale": "وزارة التربية الوطنية",
+        "Informatique": "المعلوميات",
+        "Technicien 3ème grade": "تقني من الدرجة الثالثة",
+        # ... ajoutez d'autres équivalents ici ...
+    }
+    terms_fr = " ".join(filter(None, [grade, specialite, ministere]))
+    terms_ar = " ".join([ARABIC_EQUIV.get(x, x) for x in [grade, specialite, ministere] if x])
 
-    # Requêtes variées pour maximiser les résultats
     queries = [
-        # PDFs de sujets - requêtes larges
-        f'sujet épreuve concours {terms} maroc filetype:pdf',
-        f'QCM concours {terms} maroc filetype:pdf',
-        f'corrigé concours {terms} fonction publique maroc',
-        # Recherche en arabe
-        f'موضوع مباراة التوظيف {terms} maroc',
-        f'نماذج مباريات {specialite} الوظيفة العمومية',
-        # Facebook - groupes de partage de sujets
-        f'concours {terms} maroc site:facebook.com sujet',
-        f'مباراة {specialite} site:facebook.com موضوع',
-        f'concours fonction publique maroc {specialite} site:facebook.com',
-        # Sites de partage de documents
-        f'concours {terms} maroc site:scribd.com',
-        f'concours {terms} maroc site:slideshare.net',
-        f'concours {terms} maroc site:drive.google.com',
-        # Blogs et forums marocains
-        f'sujet concours {terms} maroc annales',
-        f'concours {terms} maroc épreuve écrite',
-        # Sans filetype pour élargir
+        # Français
+        f'sujet épreuve concours {terms_fr} maroc filetype:pdf',
+        f'QCM concours {terms_fr} maroc filetype:pdf',
+        f'corrigé concours {terms_fr} fonction publique maroc',
+        # Arabe
+        f'موضوع مباراة التوظيف {terms_ar} المغرب',
+        f'نماذج مباريات {terms_ar} الوظيفة العمومية',
+        # Facebook, docs, forums (fr/ar)
+        f'concours {terms_fr} maroc site:facebook.com sujet',
+        f'مباراة {terms_ar} site:facebook.com موضوع',
+        f'concours fonction publique maroc {terms_fr} site:facebook.com',
+        f'concours {terms_fr} maroc site:scribd.com',
+        f'concours {terms_fr} maroc site:slideshare.net',
+        f'concours {terms_fr} maroc site:drive.google.com',
+        f'sujet concours {terms_fr} maroc annales',
+        f'concours {terms_fr} maroc épreuve écrite',
         f'concours {specialite} fonction publique maroc sujet questions',
     ]
 
