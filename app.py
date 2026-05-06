@@ -1,7 +1,7 @@
 """Application Streamlit - Concours Fonction Publique Maroc."""
 import streamlit as st
 from config import MINISTERES, SPECIALITES, GRADES
-from scrapers import scrape_emploi_public, scrape_alwadifa, search_concours
+from scrapers import search_concours
 from scrapers.pdf_extractor import download_and_extract
 from ai_solver import generer_solution, resumer_concours
 
@@ -58,21 +58,8 @@ if rechercher:
     if not any([min_str, spec_str, grade_str]):
         st.warning("⚠️ Veuillez sélectionner au moins un critère de recherche.")
     else:
-        with st.spinner("🔄 Recherche en cours..."):
-            # Lancer les scrapers en parallèle
-            tous_resultats = []
-
-            # Source 1: emploi-public.ma
-            resultats_ep = scrape_emploi_public(min_str, spec_str, grade_str)
-            tous_resultats.extend(resultats_ep)
-
-            # Source 2: alwadifa-maroc.com
-            resultats_aw = scrape_alwadifa(min_str, spec_str, grade_str)
-            tous_resultats.extend(resultats_aw)
-
-            # Source 3: recherche DuckDuckGo
-            resultats_ddg = search_concours(min_str, spec_str, grade_str)
-            tous_resultats.extend(resultats_ddg)
+        with st.spinner("🔄 Recherche des sujets d'épreuves..."):
+            tous_resultats = search_concours(min_str, spec_str, grade_str)
 
         if not tous_resultats:
             st.info("ℹ️ Aucun concours trouvé pour ces critères. Essayez d'élargir votre recherche.")
