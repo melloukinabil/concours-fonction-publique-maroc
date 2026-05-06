@@ -87,22 +87,23 @@ if rechercher:
                         st.markdown(f"**Ministère:** {concours.ministere or 'Non spécifié'}")
                         st.markdown(f"**Spécialité:** {concours.specialite or 'Non spécifiée'}")
                         st.markdown(f"**Grade:** {concours.grade or 'Non spécifié'}")
-                        if concours.url_source:
-                            st.link_button("🔗 Voir la source", concours.url_source)
-
-                    # Afficher le contenu du PDF si disponible
-                    if concours.url_pdf or (concours.url_source and concours.url_source.endswith(".pdf")):
-                        pdf_url = concours.url_pdf or concours.url_source
-                        if st.button("📄 Charger l'énoncé du concours", key=f"pdf_{i}"):
-                            with st.spinner("Téléchargement du PDF..."):
-                                contenu_pdf = download_and_extract(pdf_url, f"concours_{i}.pdf")
-                                if contenu_pdf:
-                                    st.text_area("Contenu de l'épreuve", contenu_pdf, height=300, key=f"txt_{i}")
-                                else:
-                                    st.warning("Impossible de charger le PDF. Le lien est peut-être invalide.")
 
                     with col2:
                         st.markdown(f"**Année:** {concours.annee}")
+                        if concours.url_source:
+                            st.markdown(f"[Lien externe ↗]({concours.url_source})", unsafe_allow_html=True)
+
+                    # Bouton pour charger et afficher le contenu directement
+                    pdf_url = concours.url_pdf or (concours.url_source if concours.url_source and concours.url_source.endswith(".pdf") else None)
+                    if pdf_url:
+                        if st.button("📄 Afficher l'énoncé du concours", key=f"pdf_{i}"):
+                            with st.spinner("⏳ Téléchargement et extraction du PDF..."):
+                                contenu_pdf = download_and_extract(pdf_url, f"concours_{i}.pdf")
+                                if contenu_pdf:
+                                    st.success("✅ Énoncé chargé avec succès")
+                                    st.text_area("📝 Contenu de l'épreuve", contenu_pdf, height=400, key=f"txt_{i}")
+                                else:
+                                    st.error("❌ Impossible de charger le PDF. Le fichier est peut-être protégé ou le lien invalide.")
 
                     st.divider()
 
