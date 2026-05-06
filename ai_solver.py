@@ -2,12 +2,46 @@
 from groq import Groq
 from config import GROQ_API_KEY, LLM_MODEL
 
+# Modèle avec support vision pour lire les images
+VISION_MODEL = "llama-3.2-90b-vision-preview"
+
 
 def get_client() -> Groq:
     """Retourne le client Groq."""
     if not GROQ_API_KEY:
         raise ValueError("GROQ_API_KEY manquante. Ajoutez-la dans le fichier .env")
     return Groq(api_key=GROQ_API_KEY)
+
+
+def lire_image_concours(image_base64: str, mime_type: str = "image/jpeg") -> str:
+    """Utilise l'IA vision pour lire et extraire le texte d'une image de concours."""
+    client = get_client()
+    try:
+        response = client.chat.completions.create(
+            model=VISION_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Extrais tout le texte de cette image de sujet de concours marocain. Reproduis fidèlement les questions, les choix (si QCM), et toutes les informations visibles (ministère, grade, date, durée). Réponds uniquement avec le contenu extrait."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature=0.1,
+            max_tokens=2000,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Erreur lecture image: {e}"
 
 
 def generer_solution(contenu_epreuve: str, specialite: str, grade: str) -> str:

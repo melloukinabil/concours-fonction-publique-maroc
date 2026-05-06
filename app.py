@@ -3,7 +3,8 @@ import streamlit as st
 from config import MINISTERES, SPECIALITES, GRADES
 from scrapers import search_concours
 from scrapers.pdf_extractor import download_and_extract
-from ai_solver import generer_solution, resumer_concours
+from scrapers.image_scraper import scrape_page_images, download_image_as_base64, get_image_mime_type
+from ai_solver import generer_solution, resumer_concours, lire_image_concours
 
 # --- Configuration de la page ---
 st.set_page_config(
@@ -83,27 +84,59 @@ if rechercher:
                     # Bouton pour charger et afficher le contenu directement
                     pdf_url = concours.url_pdf or (concours.url_source if concours.url_source and concours.url_source.endswith(".pdf") else None)
                     if pdf_url:
-                        if st.button("📄 Afficher l'énoncé du concours", key=f"pdf_{i}"):
+                        if st.button("📄 Afficher l'énoncé (PDF)", key=f"pdf_{i}"):
                             with st.spinner("⏳ Téléchargement et extraction du PDF..."):
                                 contenu_pdf = download_and_extract(pdf_url, f"concours_{i}.pdf")
                                 if contenu_pdf:
                                     st.success("✅ Énoncé chargé avec succès")
                                     st.text_area("📝 Contenu de l'épreuve", contenu_pdf, height=400, key=f"txt_{i}")
                                 else:
-                                    st.error("❌ Impossible de charger le PDF. Le fichier est peut-être protégé ou le lien invalide.")
+                                    st.error("❌ Impossible de charger le PDF.")
+
+                    # Bouton pour extraire les images de la page (sujets en images)
+                    if concours.url_source and not pdf_url:
+                        if st.button("🖼️ Extraire le sujet (images)", key=f"img_{i}"):
+                            with st.spinner("⏳ Extraction des images du sujet..."):
+                                images = scrape_page_images(concours.url_source)
+                                if images:
+                                    st.success(f"✅ {len(images)} image(s) trouvée(s)")
+                                    all_text = ""
+                                    for j, img_url in enumerate(images):
+                                        st.image(img_url, caption=f"Page {j+1}", use_container_width=True)
+                                        # Lire le contenu avec l'IA vision
+                                        img_b64 = download_image_as_base64(img_url)
+                                        if img_b64:
+                                            with st.spinner(f"🧠 Lecture IA de l'image {j+1}..."):
+                                                mime = get_image_mime_type(img_url)
+                                                texte = lire_image_concours(img_b64, mime)
+                                                all_text += texte + "\n\n"
+                                                st.text_area(f"📝 Texte extrait - Image {j+1}", texte, height=200, key=f"imgtxt_{i}_{j}")
+                                    # Stocker le contenu pour la génération de solution
+                                    if all_text:
+                                        st.session_state[f"contenu_{i}"] = all_text
+                                else:
+                                    st.warning("❌ Aucune image de sujet trouvée sur cette page.")
 
                     st.divider()
 
                     # Bouton pour générer la solution IA
                     if st.button(f"🤖 Générer la solution IA", key=f"solve_{i}"):
                         with st.spinner("🧠 L'IA génère la solution..."):
-                            # Tenter d'extraire le PDF si disponible
-                            contenu = concours.contenu_epreuve or ""
+                            # Récupérer le contenu depuis différentes sources
+                            contenu = st.session_state.get(f"contenu_{i}", "") or concours.contenu_epreuve or ""
                             if not contenu and concours.url_pdf:
                                 contenu = download_and_extract(
                                     concours.url_pdf,
                                     f"concours_{i}.pdf"
                                 )
+                            # Si toujours pas de contenu, extraire depuis les images
+                            if not contenu and concours.url_source:
+                                images = scrape_page_images(concours.url_source)
+                                for img_url in images[:3]:
+                                    img_b64 = download_image_as_base64(img_url)
+                                    if img_b64:
+                                        mime = get_image_mime_type(img_url)
+                                        contenu += lire_image_concours(img_b64, mime) + "\n\n"
 
                             if not contenu:
                                 contenu = f"Concours: {concours.titre}\nGrade: {concours.grade}\nSpécialité: {concours.specialite}"
