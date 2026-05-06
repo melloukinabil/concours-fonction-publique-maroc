@@ -88,7 +88,18 @@ if rechercher:
                         st.markdown(f"**Spécialité:** {concours.specialite or 'Non spécifiée'}")
                         st.markdown(f"**Grade:** {concours.grade or 'Non spécifié'}")
                         if concours.url_source:
-                            st.markdown(f"🔗 [Voir la source]({concours.url_source})")
+                            st.link_button("🔗 Voir la source", concours.url_source)
+
+                    # Afficher le contenu du PDF si disponible
+                    if concours.url_pdf or (concours.url_source and concours.url_source.endswith(".pdf")):
+                        pdf_url = concours.url_pdf or concours.url_source
+                        if st.button("📄 Charger l'énoncé du concours", key=f"pdf_{i}"):
+                            with st.spinner("Téléchargement du PDF..."):
+                                contenu_pdf = download_and_extract(pdf_url, f"concours_{i}.pdf")
+                                if contenu_pdf:
+                                    st.text_area("Contenu de l'épreuve", contenu_pdf, height=300, key=f"txt_{i}")
+                                else:
+                                    st.warning("Impossible de charger le PDF. Le lien est peut-être invalide.")
 
                     with col2:
                         st.markdown(f"**Année:** {concours.annee}")

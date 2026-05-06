@@ -10,6 +10,17 @@ MOTS_EPREUVE = ["sujet", "épreuve", "qcm", "examen", "corrigé", "annale", "ا�
 MOTS_EXCLUS = ["تشريع", "consigne", "circulaire", "note", "مذكرة", "décret", "arrêté"]
 
 
+def _extract_real_url(ddg_url: str) -> str:
+    """Extrait la vraie URL depuis un lien de redirection DuckDuckGo."""
+    from urllib.parse import unquote, urlparse, parse_qs
+    if "duckduckgo.com" in ddg_url or "uddg=" in ddg_url:
+        parsed = urlparse(ddg_url)
+        params = parse_qs(parsed.query)
+        if "uddg" in params:
+            return unquote(params["uddg"][0])
+    return ddg_url
+
+
 def is_sujet_epreuve(titre: str, url: str) -> bool:
     """Vérifie si le résultat est un vrai sujet d'épreuve et non un doc admin."""
     texte = (titre + " " + url).lower()
@@ -55,6 +66,9 @@ def search_concours(ministere: str, specialite: str, grade: str) -> list[Concour
             for link in links[:10]:
                 titre = link.get_text(strip=True)
                 href = link.get("href", "")
+
+                # Extraire la vraie URL depuis la redirection DuckDuckGo
+                href = _extract_real_url(href)
 
                 # Filtrer : garder uniquement les vrais sujets d'épreuves
                 if not is_sujet_epreuve(titre, href):
