@@ -1,0 +1,123 @@
+"""Application Streamlit - Concours Fonction Publique Maroc."""
+import streamlit as st
+from config import MINISTERES, SPECIALITES, GRADES
+from scrapers import scrape_emploi_public, scrape_alwadifa, search_concours
+from scrapers.pdf_extractor import download_and_extract
+from ai_solver import generer_solution, resumer_concours
+
+# --- Configuration de la page ---
+st.set_page_config(
+    page_title="Concours Fonction Publique Maroc",
+    page_icon="🇲🇦",
+    layout="wide",
+)
+
+# --- En-tête ---
+st.title("🇲🇦 Concours de la Fonction Publique - Maroc")
+st.markdown("""
+Trouvez les concours de la fonction publique marocaine et obtenez des **solutions générées par IA** 
+pour vous aider dans votre préparation.
+""")
+
+st.divider()
+
+# --- Filtres dans la sidebar ---
+with st.sidebar:
+    st.header("🔍 Filtres de recherche")
+
+    ministere = st.selectbox(
+        "📋 Ministère",
+        options=["Tous"] + MINISTERES,
+        index=0,
+    )
+
+    specialite = st.selectbox(
+        "🎓 Spécialité",
+        options=["Toutes"] + SPECIALITES,
+        index=0,
+    )
+
+    grade = st.selectbox(
+        "📊 Grade",
+        options=["Tous"] + GRADES,
+        index=0,
+    )
+
+    st.divider()
+
+    annee = st.slider("📅 Année", min_value=2018, max_value=2026, value=(2022, 2026))
+
+    rechercher = st.button("🔎 Rechercher des concours", type="primary", use_container_width=True)
+
+# --- Recherche et affichage ---
+if rechercher:
+    min_str = ministere if ministere != "Tous" else ""
+    spec_str = specialite if specialite != "Toutes" else ""
+    grade_str = grade if grade != "Tous" else ""
+
+    if not any([min_str, spec_str, grade_str]):
+        st.warning("⚠️ Veuillez sélectionner au moins un critère de recherche.")
+    else:
+        with st.spinner("🔄 Recherche en cours..."):
+            # Lancer les scrapers en parallèle
+            tous_resultats = []
+
+            # Source 1: emploi-public.ma
+            resultats_ep = scrape_emploi_public(min_str, spec_str, grade_str)
+            tous_resultats.extend(resultats_ep)
+
+            # Source 2: alwadifa-maroc.com
+            resultats_aw = scrape_alwadifa(min_str, spec_str, grade_str)
+            tous_resultats.extend(resultats_aw)
+
+            # Source 3: recherche DuckDuckGo
+            resultats_ddg = search_concours(min_str, spec_str, grade_str)
+            tous_resultats.extend(resultats_ddg)
+
+        if not tous_resultats:
+            st.info("ℹ️ Aucun concours trouvé pour ces critères. Essayez d'élargir votre recherche.")
+        else:
+            st.success(f"✅ {len(tous_resultats)} concours trouvé(s)")
+
+            for i, concours in enumerate(tous_resultats):
+                with st.expander(f"📄 {concours.titre}", expanded=(i == 0)):
+                    col1, col2 = st.columns([2, 1])
+
+                    with col1:
+                        st.markdown(f"**Ministère:** {concours.ministere or 'Non spécifié'}")
+                        st.markdown(f"**Spécialité:** {concours.specialite or 'Non spécifiée'}")
+                        st.markdown(f"**Grade:** {concours.grade or 'Non spécifié'}")
+                        if concours.url_source:
+                            st.markdown(f"🔗 [Voir la source]({concours.url_source})")
+
+                    with col2:
+                        st.markdown(f"**Année:** {concours.annee}")
+
+                    st.divider()
+
+                    # Bouton pour générer la solution IA
+                    if st.button(f"🤖 Générer la solution IA", key=f"solve_{i}"):
+                        with st.spinner("🧠 L'IA génère la solution..."):
+                            # Tenter d'extraire le PDF si disponible
+                            contenu = concours.contenu_epreuve or ""
+                            if not contenu and concours.url_pdf:
+                                contenu = download_and_extract(
+                                    concours.url_pdf,
+                                    f"concours_{i}.pdf"
+                                )
+
+                            if not contenu:
+                                contenu = f"Concours: {concours.titre}\nGrade: {concours.grade}\nSpécialité: {concours.specialite}"
+
+                            solution = generer_solution(contenu, concours.specialite, concours.grade)
+                            st.markdown("### 💡 Solution générée par IA")
+                            st.markdown(solution)
+
+# --- Footer ---
+st.divider()
+st.markdown("""
+<div style="text-align: center; color: gray; font-size: 0.8em;">
+    🛠️ Propulsé par Streamlit, Groq AI & Open Source | 
+    Les solutions sont générées par IA et sont indicatives uniquement.
+</div>
+""", unsafe_allow_html=True)
